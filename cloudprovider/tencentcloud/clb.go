@@ -16,6 +16,8 @@ import (
 	"github.com/openkruise/kruise-game/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -97,6 +99,16 @@ func (s *ClbPlugin) consSvc(conf []kruisev1alpha1.NetworkConfParams, gss *kruise
 	svc.Name = gss.GetName()
 	svc.Spec.Selector = map[string]string{
 		kruisev1alpha1.GameServerOwnerGssKey: gss.GetName(),
+	}
+	svc.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         gss.APIVersion,
+			Kind:               gss.Kind,
+			Name:               gss.GetName(),
+			UID:                gss.GetUID(),
+			Controller:         ptr.To[bool](true),
+			BlockOwnerDeletion: ptr.To[bool](true),
+		},
 	}
 
 	for _, c := range conf {
