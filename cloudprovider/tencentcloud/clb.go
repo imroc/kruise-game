@@ -68,6 +68,9 @@ func (s *ClbPlugin) OnPodAdded(c client.Client, pod *corev1.Pod, ctx context.Con
 func (s *ClbPlugin) OnPodUpdated(c client.Client, pod *corev1.Pod, ctx context.Context) (*corev1.Pod, cperrors.PluginError) {
 	gss, err := util.GetGameServerSetOfPod(pod, c, ctx)
 	if err != nil {
+		if errors.IsNotFound(err) { // ignore if gss it not found
+			return pod, nil
+		}
 		return pod, cperrors.ToPluginError(err, cperrors.InternalError)
 	}
 	svc := &v1alpha1.DedicatedCLBService{}
