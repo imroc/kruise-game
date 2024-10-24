@@ -95,6 +95,9 @@ func (s *ClbPlugin) consSvc(conf []kruisev1alpha1.NetworkConfParams, gss *kruise
 	svc := &v1alpha1.DedicatedCLBService{}
 	svc.Namespace = gss.GetNamespace()
 	svc.Name = gss.GetName()
+	svc.Spec.Selector = map[string]string{
+		kruisev1alpha1.GameServerOwnerGssKey: gss.GetName(),
+	}
 
 	for _, c := range conf {
 		switch c.Name {
