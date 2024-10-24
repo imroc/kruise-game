@@ -17,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	log "k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -73,8 +74,16 @@ func (s *ClbPlugin) OnPodUpdated(c client.Client, pod *corev1.Pod, ctx context.C
 		}
 		return pod, cperrors.ToPluginError(err, cperrors.InternalError)
 	}
-	svc := &v1alpha1.DedicatedCLBService{}
 	networkManager := utils.NewNetworkManager(pod, c)
+	networkStatus, _ := networkManager.GetNetworkStatus()
+	if networkStatus == nil {
+		pod, err := networkManager.UpdateNetworkStatus(kruisev1alpha1.NetworkStatus{
+			CurrentNetworkState: kruisev1alpha1.NetworkNotReady,
+		}, pod)
+		return pod, cperrors.ToPluginError(err, cperrors.InternalError)
+	}
+
+	svc := &v1alpha1.DedicatedCLBService{}
 	err = c.Get(ctx, types.NamespacedName{
 		Name:      gss.GetName(),
 		Namespace: gss.GetNamespace(),
@@ -89,6 +98,13 @@ func (s *ClbPlugin) OnPodUpdated(c client.Client, pod *corev1.Pod, ctx context.C
 		}
 		return pod, cperrors.NewPluginError(cperrors.ApiCallError, err.Error())
 	}
+
+	// old dedicated clb svc remain
+	if svc.OwnerReferences[0].Kind == gss.Kind && svc.OwnerReferences[0].UID != gss.UID {
+		log.Infof("[%s] waitting old dedicated clb svc %s/%s deleted. old owner gss uid is %s, but now is %s", ClbNetwork, svc.Namespace, svc.Name, svc.OwnerReferences[0].UID, gss.UID)
+		return pod, nil
+	}
+
 	return pod, nil
 }
 
