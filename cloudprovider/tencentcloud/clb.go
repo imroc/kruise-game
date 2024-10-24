@@ -24,8 +24,8 @@ const (
 	AliasCLB                = "CLB-Network"
 	ClbIdsConfigName        = "ClbIds"
 	PortProtocolsConfigName = "PortProtocols"
-	FixedConfigName         = "Fixed"
-	PortsConfigName         = "Ports"
+	MinPortConfigName       = "MinPort"
+	MaxPortConfigName       = "MaxPort"
 )
 
 type portAllocated map[int32]bool
@@ -120,6 +120,18 @@ func (s *ClbPlugin) consSvc(conf []kruisev1alpha1.NetworkConfParams, gss *kruise
 				}
 				svc.Spec.Ports = append(svc.Spec.Ports, port)
 			}
+		case MinPortConfigName:
+			minPort, err := strconv.ParseInt(c.Value, 10, 64)
+			if err != nil {
+				continue
+			}
+			svc.Spec.MinPort = minPort
+		case MaxPortConfigName:
+			maxPort, err := strconv.ParseInt(c.Value, 10, 64)
+			if err != nil {
+				continue
+			}
+			svc.Spec.MaxPort = maxPort
 		}
 	}
 	return svc, nil
